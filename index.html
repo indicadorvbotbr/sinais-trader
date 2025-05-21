@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinais Trader</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #fff;
+            transition: 0.3s;
+        }
+        .light-mode {
+            background-color: #f0f0f0;
+            color: #000;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-corretora { background: green; color: white; }
+        .btn-whatsapp { background: #25d366; color: white; }
+        .theme-toggle { background: #555; color: white; }
+        .signal {
+            border: 2px solid #444;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .BUY { background-color: #0f0; color: #000; }
+        .SELL { background-color: #f00; color: #fff; }
+        .chat {
+            border-top: 1px solid #666;
+            padding: 10px;
+        }
+        .chat input, .chat textarea {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .message { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <a href="https://avantbroker.com/pt?ref=TRCVIP" target="_blank">
+            <button class="btn-corretora">📲 Abrir Corretora</button>
+        </a>
+        <a href="https://chat.whatsapp.com/IaA2SHaSoED1YBXpeQY4Ab" target="_blank">
+            <button class="btn-whatsapp">➡️ Suporte no WhatsApp</button>
+        </a>
+        <button class="theme-toggle" onclick="toggleTheme()">🌗 Alternar Tema</button>
+    </div>
+
+    <div id="signals"></div>
+
+    <div class="chat">
+        <h3>💬 Chat Anônimo</h3>
+        <textarea id="message" placeholder="Escreva uma mensagem..."></textarea>
+        <input type="file" id="imageInput" />
+        <button onclick="sendMessage()">Enviar</button>
+        <div id="messages"></div>
+    </div>
+
+    <audio id="notifSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBdaylSOMdUQX-K73ZUppWGgqXhUXxHe5E",
+            authDomain: "sinais-trader-43e34.firebaseapp.com",
+            projectId: "sinais-trader-43e34",
+            storageBucket: "sinais-trader-43e34.appspot.com",
+            messagingSenderId: "1053158339476",
+            appId: "1:1053158339476:web:410413eee8906d60329581",
+            measurementId: "G-E2VBFHVBFP",
+            databaseURL: "https://sinais-trader-43e34-default-rtdb.firebaseio.com/"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const storage = firebase.storage();
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+        }
+
+        function sendMessage() {
+            const msg = document.getElementById('message').value;
+            const file = document.getElementById('imageInput').files[0];
+            const time = Date.now();
+
+            if (file) {
+                const ref = storage.ref('chat_images/' + time + '_' + file.name);
+                ref.put(file).then(snapshot => {
+                    snapshot.ref.getDownloadURL().then(url => {
+                        db.ref('chat').push({ msg, img: url, time });
+                    });
+                });
+            } else if (msg.trim() !== '') {
+                db.ref('chat').push({ msg, time });
+            }
+
+            document.getElementById('message').value = '';
+            document.getElementById('imageInput').value = '';
+        }
+
+        db.ref('chat').on('child_added', snap => {
+            const data = snap.val();
+            const el = document.createElement('div');
+            el.className = 'message';
+            if (data.img) {
+                el.innerHTML = `<img src="${data.img}" width="200"><br>${data.msg || ''}`;
+            } else {
+                el.textContent = data.msg;
+            }
+            document.getElementById('messages').appendChild(el);
+        });
+
+        // Simulando sinal
+        setInterval(() => {
+            const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
+            const symbol = type === 'BUY' ? '🟢 COMPRA' : '🔴 VENDA';
+            const div = document.createElement('div');
+            div.className = 'signal ' + type;
+            div.innerHTML = `<strong>${symbol}</strong><br>Ativo: EUR/USD<br>Horário: ${new Date().toLocaleTimeString()}`;
+            document.getElementById('signals').prepend(div);
+            document.getElementById('notifSound').play();
+        }, 15000); // simulação de sinal a cada 15s
+    </script>
+</body>
+</html>
